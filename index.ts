@@ -4,46 +4,46 @@ const insensitive = document.querySelector(
 	'.search__insensitive-checkbox'
 ) as HTMLInputElement
 
-
-let options = 'g'
-
-function highlightPhrase(phrase: string, options: string) {
-	const paragraphs = wrapper.children
-	const phraseRegex = new RegExp(phrase, options)
-	for (let paragraph of paragraphs) {
-		if (!phrase) {
-			paragraph.innerHTML = paragraph.textContent!
-		} else {
-			paragraph.innerHTML = paragraph.textContent!.replace(
-				phraseRegex,
-				match => `<span class='highlighted'>${match}</span>`
-			)
-		}
-	}
-}
-
-const debouncedHighlightPhrase = debounce(highlightPhrase, 300)
+let additionalRegexOptions: '' | 'i' = ''
+const paragraphs = [...wrapper.children] as HTMLParagraphElement[]
+const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400)
 
 input.addEventListener('input', function () {
-	debouncedHighlightPhrase(this.value, options)
+	debouncedHighlightAllParagraphs(paragraphs, this.value)
 })
 
 insensitive.addEventListener('change', function () {
-	if (this.checked) {
-		options += 'i'
-	} else {
-		options = options.replace('i', '')
-	}
+	additionalRegexOptions = this.checked ? 'i' : ''
 	if (input.value) {
-		highlightPhrase(input.value, options)
+		highlightAllParagraphs(paragraphs, input.value)
 	}
 })
 
 window.addEventListener('load', () => {
 	if (insensitive.checked) {
-		options += 'i'
+		additionalRegexOptions = 'i'
 	}
 })
+
+function highlightAllParagraphs(
+	paragraphs: HTMLParagraphElement[],
+	phrase: string
+) {
+	paragraphs.forEach(paragraph => highlightParagraph(paragraph, phrase))
+}
+
+function highlightParagraph(paragraph: HTMLParagraphElement, phrase: string) {
+	if (!phrase) {
+		paragraph.innerHTML = paragraph.textContent || ''
+		return
+	}
+	const phraseRegex = new RegExp(phrase, 'g' + additionalRegexOptions)
+	paragraph.innerHTML =
+		paragraph.textContent?.replace(
+			phraseRegex,
+			match => `<span class='highlighted'>${match}</span>`
+		) || ''
+}
 
 function debounce(callback: Function, ms: number) {
 	let timer: number
