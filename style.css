@@ -1,0 +1,31 @@
+body {
+  background: #ddd;
+}
+
+label {
+  user-select: none;
+}
+
+.search {
+	display: flex;
+	justify-content: center;
+	column-gap: 15px;
+	margin: 20px 0;
+}
+
+.wrapper {
+	background: #ccc;
+	padding: 20px;
+}
+
+.wrapper p {
+	border: 1px solid #444;
+	background: #ddd;
+	border-radius: 10px;
+	padding: 10px;
+}
+
+.highlighted {
+	color: black;
+	background: yellow;
+}
