@@ -4,35 +4,37 @@ const insensitive = document.querySelector(
 	'.search__insensitive-checkbox'
 ) as HTMLInputElement
 
-let additionalRegexOptions: Set<'g' | 'i'> = new Set(['g'])
+let regexOptions: Set<'g' | 'i'> = new Set(['g'])
 const paragraphs = [...wrapper.children] as HTMLParagraphElement[]
-const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400)
-const highlightWorker = new Worker('./highlight.js', {
-	type: 'module'
-}) as HighlightWorker
 
-highlightWorker.onmessage = (message: MessageEvent<HighlightedParagraph>) => {
-	const { id, text, containsPhrase } = message.data
+const highlightWorker: HighlightWorker = new Worker('./highlight.js', {
+	type: 'module'
+})
+highlightWorker.onmessage = (message: MessageEvent<Paragraph>) => {
+	const { id, text } = message.data
 	const paragraph = wrapper.querySelector(
-		`p[data-id="${id}"`
+		`p[data-id="${id}"]`
 	) as HTMLParagraphElement
-	if (containsPhrase) {
+
+	if (paragraph.textContent !== text) {
 		paragraph.classList.add('contains-phrase')
 	} else {
-		paragraph.classList.remove('contains-phrase')	
+		paragraph.classList.remove('contains-phrase')
 	}
+	
 	paragraph.innerHTML = text
 }
 
+const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400)
 input.addEventListener('input', function () {
 	debouncedHighlightAllParagraphs(paragraphs, this.value)
 })
 
 insensitive.addEventListener('change', function () {
 	if (this.checked) {
-		additionalRegexOptions.add('i')
+		regexOptions.add('i')
 	} else {
-		additionalRegexOptions.delete('i')
+		regexOptions.delete('i')
 	}
 
 	if (input.value) {
@@ -42,7 +44,7 @@ insensitive.addEventListener('change', function () {
 
 window.addEventListener('load', () => {
 	if (insensitive.checked) {
-		additionalRegexOptions.add('i')
+		regexOptions.add('i')
 	}
 })
 
@@ -54,13 +56,13 @@ function highlightAllParagraphs(
 }
 
 function highlightParagraph(paragraph: HTMLParagraphElement, phrase: string) {
-	const paragraphWithRegex = {
-		id: paragraph.getAttribute('data-id'),
-		text: paragraph.textContent,
-		regex: new RegExp(phrase, [...additionalRegexOptions].join(''))
-	} as ParagraphWithRegex
+	const paragraphToHighlight: ParagraphToHighlight = {
+		id: paragraph.getAttribute('data-id') || '',
+		text: paragraph.textContent || '',
+		regex: new RegExp(phrase, [...regexOptions].join(''))
+	}
 
-	highlightWorker.postMessage(paragraphWithRegex)
+	highlightWorker.postMessage(paragraphToHighlight)
 }
 
 function debounce(callback: Function, ms: number) {
@@ -77,16 +79,12 @@ interface Paragraph {
 	text: string
 }
 
-interface HighlightedParagraph extends Paragraph {
-	containsPhrase: boolean
-}
-
-interface ParagraphWithRegex extends Paragraph {
+interface ParagraphToHighlight extends Paragraph {
 	regex: RegExp
 }
 
 interface HighlightWorker extends Omit<Worker, 'postMessage'> {
-	postMessage(message: ParagraphWithRegex | HighlightedParagraph): void
+	postMessage(message: ParagraphToHighlight | Paragraph): void
 }
 
-export { Paragraph, ParagraphWithRegex, highlightWorker }
+export { ParagraphToHighlight }

@@ -1,16 +1,15 @@
 const wrapper = document.querySelector('.wrapper');
 const input = document.querySelector('#search');
 const insensitive = document.querySelector('.search__insensitive-checkbox');
-let additionalRegexOptions = new Set(['g']);
+let regexOptions = new Set(['g']);
 const paragraphs = [...wrapper.children];
-const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400);
 const highlightWorker = new Worker('./highlight.js', {
     type: 'module'
 });
 highlightWorker.onmessage = (message) => {
-    const { id, text, containsPhrase } = message.data;
-    const paragraph = wrapper.querySelector(`p[data-id="${id}"`);
-    if (containsPhrase) {
+    const { id, text } = message.data;
+    const paragraph = wrapper.querySelector(`p[data-id="${id}"]`);
+    if (paragraph.textContent !== text) {
         paragraph.classList.add('contains-phrase');
     }
     else {
@@ -18,15 +17,16 @@ highlightWorker.onmessage = (message) => {
     }
     paragraph.innerHTML = text;
 };
+const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400);
 input.addEventListener('input', function () {
     debouncedHighlightAllParagraphs(paragraphs, this.value);
 });
 insensitive.addEventListener('change', function () {
     if (this.checked) {
-        additionalRegexOptions.add('i');
+        regexOptions.add('i');
     }
     else {
-        additionalRegexOptions.delete('i');
+        regexOptions.delete('i');
     }
     if (input.value) {
         highlightAllParagraphs(paragraphs, input.value);
@@ -34,19 +34,19 @@ insensitive.addEventListener('change', function () {
 });
 window.addEventListener('load', () => {
     if (insensitive.checked) {
-        additionalRegexOptions.add('i');
+        regexOptions.add('i');
     }
 });
 function highlightAllParagraphs(paragraphs, phrase) {
     paragraphs.forEach(paragraph => highlightParagraph(paragraph, phrase));
 }
 function highlightParagraph(paragraph, phrase) {
-    const paragraphWithRegex = {
-        id: paragraph.getAttribute('data-id'),
-        text: paragraph.textContent,
-        regex: new RegExp(phrase, [...additionalRegexOptions].join(''))
+    const paragraphToHighlight = {
+        id: paragraph.getAttribute('data-id') || '',
+        text: paragraph.textContent || '',
+        regex: new RegExp(phrase, [...regexOptions].join(''))
     };
-    highlightWorker.postMessage(paragraphWithRegex);
+    highlightWorker.postMessage(paragraphToHighlight);
 }
 function debounce(callback, ms) {
     let timer;
@@ -55,4 +55,4 @@ function debounce(callback, ms) {
         timer = setTimeout(() => callback(...args), ms);
     };
 }
-export { highlightWorker };
+export {};
