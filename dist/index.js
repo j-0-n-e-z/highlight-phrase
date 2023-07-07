@@ -9,7 +9,6 @@ const highlightWorker = new Worker('./highlight.js', {
 });
 highlightWorker.onmessage = (message) => {
     const { id, text, containsPhrase } = message.data;
-    console.log(message.data);
     const paragraph = wrapper.querySelector(`p[data-id="${id}"`);
     if (containsPhrase) {
         paragraph.classList.add('contains-phrase');
