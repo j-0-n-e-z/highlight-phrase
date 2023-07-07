@@ -29,3 +29,7 @@ label {
 	color: black;
 	background: yellow;
 }
+
+.wrapper p.contains-phrase {
+	background: rgba(68, 255, 62, 0.356);
+}
