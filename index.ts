@@ -4,7 +4,7 @@ const insensitive = document.querySelector(
 	'.search__insensitive-checkbox'
 ) as HTMLInputElement
 
-let regexOptions: Set<'g' | 'i'> = new Set(['g'])
+const regexOptions: Set<'g' | 'i'> = new Set(['g'])
 const paragraphs = [...wrapper.children] as HTMLParagraphElement[]
 
 const highlightWorker: HighlightWorker = new Worker('./highlight.js', {
