@@ -1,5 +1,5 @@
 const wrapper = document.querySelector('.wrapper') as HTMLDivElement
-const input = document.querySelector('#search') as HTMLInputElement
+const input = document.querySelector('.search__input') as HTMLInputElement
 const insensitive = document.querySelector(
 	'.search__insensitive-checkbox'
 ) as HTMLInputElement
@@ -7,7 +7,7 @@ const insensitive = document.querySelector(
 const regexOptions: Set<'g' | 'i'> = new Set(['g'])
 const paragraphs = [...wrapper.children] as HTMLParagraphElement[]
 
-const highlightWorker: HighlightWorker = new Worker('./highlight.js', {
+const highlightWorker: HighlightWorker = new Worker('./highlight-worker.js', {
 	type: 'module'
 })
 highlightWorker.onmessage = (message: MessageEvent<Paragraph>) => {
@@ -16,18 +16,20 @@ highlightWorker.onmessage = (message: MessageEvent<Paragraph>) => {
 		`p[data-id="${id}"]`
 	) as HTMLParagraphElement
 
-	if (paragraph.textContent !== text) {
+	const isTextHighlighted = paragraph.textContent !== text
+
+	if (isTextHighlighted) {
 		paragraph.classList.add('contains-phrase')
 	} else {
 		paragraph.classList.remove('contains-phrase')
 	}
-	
+
 	paragraph.innerHTML = text
 }
 
-const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400)
+const highlightAllParagraphsDebounced = debounce(highlightAllParagraphs, 400)
 input.addEventListener('input', function () {
-	debouncedHighlightAllParagraphs(paragraphs, this.value)
+	highlightAllParagraphsDebounced(paragraphs, this.value)
 })
 
 insensitive.addEventListener('change', function () {
@@ -38,7 +40,7 @@ insensitive.addEventListener('change', function () {
 	}
 
 	if (input.value) {
-		highlightAllParagraphs(paragraphs, input.value)
+		highlightAllParagraphs()
 	}
 })
 
@@ -48,18 +50,15 @@ window.addEventListener('load', () => {
 	}
 })
 
-function highlightAllParagraphs(
-	paragraphs: HTMLParagraphElement[],
-	phrase: string
-) {
-	paragraphs.forEach(paragraph => highlightParagraph(paragraph, phrase))
+function highlightAllParagraphs() {
+	paragraphs.forEach(paragraph => highlightParagraph(paragraph))
 }
 
-function highlightParagraph(paragraph: HTMLParagraphElement, phrase: string) {
+function highlightParagraph(paragraph: HTMLParagraphElement) {
 	const paragraphToHighlight: ParagraphToHighlight = {
 		id: paragraph.getAttribute('data-id') || '',
 		text: paragraph.textContent || '',
-		regex: new RegExp(phrase, [...regexOptions].join(''))
+		regex: new RegExp(input.value, [...regexOptions].join(''))
 	}
 
 	highlightWorker.postMessage(paragraphToHighlight)

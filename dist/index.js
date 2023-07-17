@@ -1,15 +1,16 @@
 const wrapper = document.querySelector('.wrapper');
-const input = document.querySelector('#search');
+const input = document.querySelector('.search__input');
 const insensitive = document.querySelector('.search__insensitive-checkbox');
-let regexOptions = new Set(['g']);
+const regexOptions = new Set(['g']);
 const paragraphs = [...wrapper.children];
-const highlightWorker = new Worker('./highlight.js', {
+const highlightWorker = new Worker('./highlight-worker.js', {
     type: 'module'
 });
 highlightWorker.onmessage = (message) => {
     const { id, text } = message.data;
     const paragraph = wrapper.querySelector(`p[data-id="${id}"]`);
-    if (paragraph.textContent !== text) {
+    const isTextHighlighted = paragraph.textContent !== text;
+    if (isTextHighlighted) {
         paragraph.classList.add('contains-phrase');
     }
     else {
@@ -17,11 +18,12 @@ highlightWorker.onmessage = (message) => {
     }
     paragraph.innerHTML = text;
 };
-const debouncedHighlightAllParagraphs = debounce(highlightAllParagraphs, 400);
+const highlightAllParagraphsDebounced = debounce(highlightAllParagraphs, 400);
 input.addEventListener('input', function () {
-    debouncedHighlightAllParagraphs(paragraphs, this.value);
+    highlightAllParagraphsDebounced(paragraphs, this.value);
 });
-insensitive.addEventListener('change', function () {
+insensitive.addEventListener('change', () => {
+    console.log(this);
     if (this.checked) {
         regexOptions.add('i');
     }
@@ -29,7 +31,7 @@ insensitive.addEventListener('change', function () {
         regexOptions.delete('i');
     }
     if (input.value) {
-        highlightAllParagraphs(paragraphs, input.value);
+        highlightAllParagraphs();
     }
 });
 window.addEventListener('load', () => {
@@ -37,14 +39,14 @@ window.addEventListener('load', () => {
         regexOptions.add('i');
     }
 });
-function highlightAllParagraphs(paragraphs, phrase) {
-    paragraphs.forEach(paragraph => highlightParagraph(paragraph, phrase));
+function highlightAllParagraphs() {
+    paragraphs.forEach(paragraph => highlightParagraph(paragraph));
 }
-function highlightParagraph(paragraph, phrase) {
+function highlightParagraph(paragraph) {
     const paragraphToHighlight = {
         id: paragraph.getAttribute('data-id') || '',
         text: paragraph.textContent || '',
-        regex: new RegExp(phrase, [...regexOptions].join(''))
+        regex: new RegExp(input.value, [...regexOptions].join(''))
     };
     highlightWorker.postMessage(paragraphToHighlight);
 }
